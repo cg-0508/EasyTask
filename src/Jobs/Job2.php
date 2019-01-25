@@ -1,15 +1,18 @@
 <?php
 namespace Cg\Jobs;
 
-use Cg\Jobs\JobAbstract;
 
 class Job2 extends JobAbstract{
 
+    static $int = 1;
     public function logic($worker)
     {
-        sleep(5);
-        echo 'job2';
-        file_put_contents('./b.txt', 'job2');
+        sleep(2);
+
+
+
+
+        $this->is_fin = 1;
     }
 
 }

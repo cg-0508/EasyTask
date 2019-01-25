@@ -8,7 +8,7 @@ class WorkerServer extends Process{
      */
     public $worker_count = 1;
 
-    public $master;
+    public $master_pid;
 
     /**
      * 标准输出重定向的文件
@@ -18,10 +18,6 @@ class WorkerServer extends Process{
      * worker进程id
      */
     private $_worker_pids = [];
-    /**
-     * Master进程id保存的文件
-     */
-    private $pid_file = __DIR__ . '/../../logs/master.pid';
 
     /**
      * 是否以守护进程运行
@@ -30,26 +26,36 @@ class WorkerServer extends Process{
 
     public $jobs = [];
 
+    /**
+     * worker进程集合
+     * @var array
+     */
     public $workers = [];
 
     public function run()
     {
         $this->checkEnv();
+        $this->init();
         $this->parseCommand();
-        $this->installSignal();
         $this->hungup();
     }
 
-    protected function hungup()
+    private function init()
+    {
+        $this->master_pid = posix_getpid();
+    }
+
+    protected function hungup($xxx = false)
     {
         while(1){
             pcntl_signal_dispatch();
-            foreach($this->workers as $worker){
-                pcntl_waitpid($worker->pid, $status, WNOHANG);
-                
+            foreach($this->_worker_pids as $key => $pid){
+                $res = pcntl_waitpid($pid, $status, WNOHANG);
+                if($res > 0){
+                    unset($this->_worker_pids[$key]);
+                }
             }
             usleep(500000);
-
         }
     }
 
@@ -67,38 +73,17 @@ class WorkerServer extends Process{
     {
         switch($signal){
             case SIGINT:
-
-            break;
-            case SIGTERM:
+                // CTRL-C
                 $this->stopAllWorkers();
-            break;            
+                break;
+            case SIGTERM:
+            break;
             case SIGUSR1:
             
             break;
         }
     }
 
-
-
-    private function savePidToFile()
-    {
-        $pid = posix_getpid();
-        $fp = fopen($this->pid_file, 'w');
-        if($fp){
-            fwrite($fp, $pid);
-        }
-        @fclose($fp);
-    }
-
-    private function removePidFile()
-    {
-        unlink($this->pid_file);
-    }
-
-    private function getMasterPid()
-    {
-        return file_get_contents($this->pid_file);
-    }
 
     public function parseCommand()
     {
@@ -108,10 +93,6 @@ class WorkerServer extends Process{
         }
         switch(trim($argv[1])){
             case "start": 
-                echo "start\n";
-                if($this->isRunning()){
-                    exit("运行中...");
-                }
                 $this->startServer();
             break;
             case "stop": 
@@ -129,6 +110,7 @@ class WorkerServer extends Process{
     private function startServer()
     {
         $this->createWorkers();
+        $this->installSignal();
     }
 
     private function createWorkers()
@@ -137,24 +119,21 @@ class WorkerServer extends Process{
             exit("请添加任务！");
         }
         for($i = 0; $i < count($this->jobs); $i++){
-            $this->fork();
+            $this->fork($this->dispatch());
         }
-
     }
 
 
-    private function fork()
+    private function fork($job)
     {
         $pid = pcntl_fork();
         if ($pid == -1) {
             exit("pcntl_fork faild.");
         }else if($pid == 0){
             // worker
-            $this->workers[] = $worker = new Worker([
-                'pid' => $pid,
+            $worker = new Worker([
+                'pid' => posix_getpid(),
             ]);
-            $job = $this->dispatch();
-            echo $job;
             $worker->hungup($job);
         }else{
             // master
@@ -167,11 +146,11 @@ class WorkerServer extends Process{
      */
     private function dispatch()
     {
-        foreach($this->jobs as $job){
-            if ($job->is_fun == 1){
+        foreach($this->jobs as $key => $job){
+            if ($job->is_run == 1){
                 continue;
             }else{
-                $job->is_fun = 1;
+                $job->is_run = 1;
                 return $job;
             }
         }
@@ -181,14 +160,11 @@ class WorkerServer extends Process{
     public function stopAllWorkers()
     {
         foreach($this->_worker_pids as $pid){
-            exec("sudo kill $pid");
+            exec("kill -9 $pid");
         }
+        exec("kill -9 {$this->master_pid}");
     }
 
-    public function isRunning()
-    {
-        return file_exists($this->pid_file);
-    }
 
     public function checkEnv()
     {

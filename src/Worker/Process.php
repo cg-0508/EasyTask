@@ -18,8 +18,6 @@ abstract class Process{
      */
     protected $hungup_time;
 
-
-
     public function __construct()
     {
         $this->hungup_time = time();
@@ -27,7 +25,7 @@ abstract class Process{
     }
 
     // 进程挂起
-    abstract protected function hungup();
+    abstract protected function hungup($xxx);
 
     public function makePipe(){
 
