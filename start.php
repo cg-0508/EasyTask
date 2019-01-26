@@ -7,7 +7,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 $server = new \Cg\Worker\WorkerServer();
 
-$server->deamon = false;
+$server->deamon = true;
 
 // 添加任务
 $server->jobs = [

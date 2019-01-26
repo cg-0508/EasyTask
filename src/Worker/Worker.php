@@ -4,13 +4,17 @@ namespace Cg\Worker;
 
 
 class Worker extends Process{
-        
-    
+
+
     public function __construct(array $config)
     {
         $this->pid = $config['pid'];
     }
 
+    /**
+     * worker执行job
+     * @param $job
+     */
     public function hungup($job){
         while (1) {
             if($job->is_fin == 1){

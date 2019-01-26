@@ -13,7 +13,7 @@ class WorkerServer extends Process{
     /**
      * 标准输出重定向的文件
      */
-    public $std_out_file = __DIR__ . '/../logs/log.txt';
+    public $std_out_file = __DIR__ . '/../Logs/log.txt';
     /**
      * worker进程id
      */
@@ -69,6 +69,49 @@ class WorkerServer extends Process{
         pcntl_signal(SIGUSR1, [__CLASS__, "handleSignal"], false);
     }
 
+    /**
+     * 开启守护进程
+     */
+    public function deamonize() {
+        $pid = pcntl_fork();
+        if($pid < 0) {
+            exit("pcntl_fork() failed\n");
+        } else if($pid > 0) {
+            exit(0);
+        } else {
+            $sid = posix_setsid();
+            if($sid < 0) {
+                exit("deamon failed\r\n");
+            }
+            umask(0);
+            $pid = pcntl_fork();
+            if($pid < 0) {
+                exit("pcntl_fork() failed\r\n");
+            } else if($pid > 0) {
+                exit(0); // 结束第一子进程，第二子进程继续
+            }
+            $this->resetStd();
+        }
+    }
+    /**
+     * 重定向标准输出
+     */
+    protected function resetStd()
+    {
+        global $STDOUT, $STDERR;
+        $output = str_replace(array('{YY}', '{MM}', '{DD}'), array(date('Y'), date('m'), date('d')), $this->std_out_file);
+        $handle = fopen($output, "a+");
+        if ($handle) {
+            unset($handle);
+            @fclose(STDOUT);
+            @fclose(STDERR);
+            $STDOUT = fopen($output, "a");
+            $STDERR = fopen($output, "a");
+        } else {
+            throw new \Exception('can not open stdOutput file '.$output);
+        }
+    }
+
     public function handleSignal($signal)
     {
         switch($signal){
@@ -109,6 +152,9 @@ class WorkerServer extends Process{
 
     private function startServer()
     {
+        if($this->deamon){
+            $this->deamonize();
+        }
         $this->createWorkers();
         $this->installSignal();
     }
