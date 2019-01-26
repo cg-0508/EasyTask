@@ -3,13 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="049c951b-a3b2-431f-93d6-07e6bf15d2b6" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/src/Jobs/Job1.php" afterPath="$PROJECT_DIR$/src/Jobs/Job1.php" />
-      <change beforePath="$PROJECT_DIR$/src/Jobs/Job2.php" afterPath="$PROJECT_DIR$/src/Jobs/Job2.php" />
-      <change beforePath="$PROJECT_DIR$/src/Jobs/JobAbstract.php" afterPath="$PROJECT_DIR$/src/Jobs/JobAbstract.php" />
-      <change beforePath="$PROJECT_DIR$/src/Logs/log.txt" afterPath="$PROJECT_DIR$/src/Logs/log.txt" />
-      <change beforePath="$PROJECT_DIR$/src/Worker/Process.php" afterPath="$PROJECT_DIR$/src/Worker/Process.php" />
-      <change beforePath="$PROJECT_DIR$/src/Worker/Worker.php" afterPath="$PROJECT_DIR$/src/Worker/Worker.php" />
-      <change beforePath="$PROJECT_DIR$/src/Worker/WorkerServer.php" afterPath="$PROJECT_DIR$/src/Worker/WorkerServer.php" />
+      <change beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -23,7 +17,7 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="WorkerServer.php" pinned="false" current-in-tab="true">
+      <file leaf-file-name="WorkerServer.php" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/Worker/WorkerServer.php">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="449">
@@ -31,6 +25,19 @@
               <folding>
                 <element signature="e#4219#4472#0#PHP" expanded="false" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="README.md" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/README.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+            <state split_layout="SPLIT">
+              <first_editor relative-caret-position="182">
+                <caret line="7" column="0" lean-forward="true" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
+                <folding />
+              </first_editor>
+              <second_editor />
             </state>
           </provider>
         </entry>
@@ -113,6 +120,7 @@
         <option value="$PROJECT_DIR$/src/Logs/master.pid" />
         <option value="$PROJECT_DIR$/src/Worker/Process.php" />
         <option value="$PROJECT_DIR$/src/Worker/WorkerServer.php" />
+        <option value="$PROJECT_DIR$/README.md" />
       </list>
     </option>
   </component>
@@ -127,7 +135,7 @@
       <path value="$PROJECT_DIR$/vendor/composer" />
     </include_path>
   </component>
-  <component name="ProjectFrameBounds" extendedState="7">
+  <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="-8" />
     <option name="y" value="-8" />
     <option name="width" value="1190" />
@@ -217,15 +225,15 @@
       <updated>1548416829637</updated>
       <workItem from="1548416831604" duration="10153000" />
       <workItem from="1548474304324" duration="4462000" />
-      <workItem from="1548479288152" duration="4388000" />
+      <workItem from="1548479288152" duration="4562000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="19003000" />
+    <option name="totallyTimeSpent" value="19177000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1382" height="754" extended-state="7" />
+    <frame x="-8" y="-8" width="1382" height="754" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.19288956" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -315,6 +323,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="364">
           <caret line="15" column="0" lean-forward="true" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+          <folding>
+            <element signature="e#7#24#0#PHP" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -380,13 +391,6 @@
     <entry file="file://$PROJECT_DIR$/a.txt" />
     <entry file="file://$PROJECT_DIR$/2.txt" />
     <entry file="file://$PROJECT_DIR$/1.txt" />
-    <entry file="file://$PROJECT_DIR$/start.php">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="208">
-          <caret line="9" column="23" lean-forward="false" selection-start-line="9" selection-start-column="23" selection-end-line="9" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -458,6 +462,16 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/start.php">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="390">
+          <caret line="15" column="0" lean-forward="true" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+          <folding>
+            <element signature="e#7#24#0#PHP" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/Worker/WorkerServer.php">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="449">
@@ -465,6 +479,17 @@
           <folding>
             <element signature="e#4219#4472#0#PHP" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="182">
+            <caret line="7" column="0" lean-forward="true" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
+            <folding />
+          </first_editor>
+          <second_editor />
         </state>
       </provider>
     </entry>
