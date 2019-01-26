@@ -3,16 +3,15 @@ namespace Cg\Jobs;
 
 
 class Job2 extends JobAbstract{
-
-    static $int = 1;
+    public $job_id = 2;
     public function logic($worker)
     {
-        sleep(2);
+        sleep(5);
 
 
 
 
-        $this->is_fin = 1;
+        $this->complete();
     }
 
 }

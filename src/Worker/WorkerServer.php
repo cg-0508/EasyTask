@@ -8,12 +8,7 @@ class WorkerServer extends Process{
      */
     public $worker_count = 1;
 
-    public $master_pid;
 
-    /**
-     * 标准输出重定向的文件
-     */
-    public $std_out_file = __DIR__ . '/../Logs/log.txt';
     /**
      * worker进程id
      */
@@ -23,6 +18,7 @@ class WorkerServer extends Process{
      * 是否以守护进程运行
      */
     public $deamon = false;
+
 
     public $jobs = [];
 
@@ -42,7 +38,7 @@ class WorkerServer extends Process{
 
     private function init()
     {
-        $this->master_pid = posix_getpid();
+        $this->makePipe();
     }
 
     protected function hungup($xxx = false)
@@ -51,10 +47,11 @@ class WorkerServer extends Process{
             pcntl_signal_dispatch();
             foreach($this->_worker_pids as $key => $pid){
                 $res = pcntl_waitpid($pid, $status, WNOHANG);
-                if($res > 0){
-                    unset($this->_worker_pids[$key]);
-                }
+//                if($res > 0){
+//                    unset($this->_worker_pids[$key]);
+//                }
             }
+//            $this->pipeWrite("sign");
             usleep(500000);
         }
     }
@@ -99,7 +96,7 @@ class WorkerServer extends Process{
     protected function resetStd()
     {
         global $STDOUT, $STDERR;
-        $output = str_replace(array('{YY}', '{MM}', '{DD}'), array(date('Y'), date('m'), date('d')), $this->std_out_file);
+        $output = $this->std_out_file;
         $handle = fopen($output, "a+");
         if ($handle) {
             unset($handle);
@@ -140,8 +137,9 @@ class WorkerServer extends Process{
             break;
             case "stop": 
                 echo "stop\n";
+                $this->stopAllWorkers();
             break;
-            case "status": 
+            case "status":
                 echo "status\n";
             break;
             default: 
@@ -167,6 +165,7 @@ class WorkerServer extends Process{
         for($i = 0; $i < count($this->jobs); $i++){
             $this->fork($this->dispatch());
         }
+        $this->saveMasterPid();
     }
 
 
@@ -180,6 +179,7 @@ class WorkerServer extends Process{
             $worker = new Worker([
                 'pid' => posix_getpid(),
             ]);
+            $this->makePipe();
             $worker->hungup($job);
         }else{
             // master
@@ -205,10 +205,12 @@ class WorkerServer extends Process{
 
     public function stopAllWorkers()
     {
+        $this->clearPipe();
         foreach($this->_worker_pids as $pid){
             exec("kill -9 $pid");
         }
-        exec("kill -9 {$this->master_pid}");
+        exec("kill -9 {$this->getMasterPid()}");
+        die;
     }
 
 
