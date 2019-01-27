@@ -28,6 +28,26 @@ abstract class Process
      */
     protected $hungup_time;
 
+    /**
+     * worker进程最大执行时间
+     * @var
+     */
+    protected $hungup_max_time;
+
+    /**
+     *
+     * Job开始执行时间.
+     */
+    public $job_start_time;
+
+    /**
+     * Job最长执行时间
+     * @var int
+     */
+    public $job_max_run_seconds = 3600;
+
+
+
     public function __construct()
     {
         $this->hungup_time = time();

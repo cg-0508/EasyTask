@@ -8,7 +8,6 @@ class WorkerServer extends Process{
      */
     public $worker_count = 1;
 
-
     /**
      * worker进程id
      */
@@ -36,20 +35,23 @@ class WorkerServer extends Process{
         $this->hungup();
     }
 
-    private function init()
+    public function init()
     {
         $this->makePipe();
     }
 
-    protected function hungup($xxx = false)
+    public function hungup($xxx = false)
     {
         while(1){
             pcntl_signal_dispatch();
             foreach($this->_worker_pids as $key => $pid){
                 $res = pcntl_waitpid($pid, $status, WNOHANG);
-//                if($res > 0){
-//                    unset($this->_worker_pids[$key]);
-//                }
+                if($res > 0){
+                    //unset($this->_worker_pids[$key]);
+                }else{
+
+                }
+
             }
 //            $this->pipeWrite("sign");
             usleep(500000);
@@ -66,49 +68,6 @@ class WorkerServer extends Process{
         pcntl_signal(SIGUSR1, [__CLASS__, "handleSignal"], false);
     }
 
-    /**
-     * 开启守护进程
-     */
-    public function deamonize() {
-        $pid = pcntl_fork();
-        if($pid < 0) {
-            exit("pcntl_fork() failed\n");
-        } else if($pid > 0) {
-            exit(0);
-        } else {
-            $sid = posix_setsid();
-            if($sid < 0) {
-                exit("deamon failed\r\n");
-            }
-            umask(0);
-            $pid = pcntl_fork();
-            if($pid < 0) {
-                exit("pcntl_fork() failed\r\n");
-            } else if($pid > 0) {
-                exit(0); // 结束第一子进程，第二子进程继续
-            }
-            $this->resetStd();
-        }
-    }
-    /**
-     * 重定向标准输出
-     */
-    protected function resetStd()
-    {
-        global $STDOUT, $STDERR;
-        $output = $this->std_out_file;
-        $handle = fopen($output, "a+");
-        if ($handle) {
-            unset($handle);
-            @fclose(STDOUT);
-            @fclose(STDERR);
-            $STDOUT = fopen($output, "a");
-            $STDERR = fopen($output, "a");
-        } else {
-            throw new \Exception('can not open stdOutput file '.$output);
-        }
-    }
-
     public function handleSignal($signal)
     {
         switch($signal){
@@ -117,8 +76,10 @@ class WorkerServer extends Process{
                 $this->stopAllWorkers();
                 break;
             case SIGTERM:
+                // drop
             break;
             case SIGUSR1:
+                //status
             
             break;
         }
@@ -139,6 +100,15 @@ class WorkerServer extends Process{
                 echo "stop\n";
                 $this->stopAllWorkers();
             break;
+            case "drop":
+                // 强制停止
+                echo "drop\n";
+
+                break;
+            case "reload":
+                echo "reload\n";
+
+                break;
             case "status":
                 echo "status\n";
             break;
@@ -148,7 +118,7 @@ class WorkerServer extends Process{
     }
 
 
-    private function startServer()
+    public function startServer()
     {
         if($this->deamon){
             $this->deamonize();
@@ -157,7 +127,7 @@ class WorkerServer extends Process{
         $this->installSignal();
     }
 
-    private function createWorkers()
+    public function createWorkers()
     {
         if(count($this->jobs) < 1){
             exit("请添加任务！");
@@ -203,7 +173,7 @@ class WorkerServer extends Process{
     }
 
 
-    public function stopAllWorkers()
+    protected function stopAllWorkers()
     {
         $this->clearPipe();
         foreach($this->_worker_pids as $pid){
@@ -221,6 +191,49 @@ class WorkerServer extends Process{
         }
         if(PATH_SEPARATOR == ";"){
             exit("仅支持linux系统运行！\n");
+        }
+    }
+
+    /**
+     * 开启守护进程
+     */
+    protected function deamonize() {
+        $pid = pcntl_fork();
+        if($pid < 0) {
+            exit("pcntl_fork() failed\n");
+        } else if($pid > 0) {
+            exit(0);
+        } else {
+            $sid = posix_setsid();
+            if($sid < 0) {
+                exit("deamon failed\r\n");
+            }
+            umask(0);
+            $pid = pcntl_fork();
+            if($pid < 0) {
+                exit("pcntl_fork() failed\r\n");
+            } else if($pid > 0) {
+                exit(0); // 结束第一子进程，第二子进程继续
+            }
+            $this->resetStd();
+        }
+    }
+    /**
+     * 重定向标准输出
+     */
+    protected function resetStd()
+    {
+        global $STDOUT, $STDERR;
+        $output = $this->std_out_file;
+        $handle = fopen($output, "a+");
+        if ($handle) {
+            unset($handle);
+            @fclose(STDOUT);
+            @fclose(STDERR);
+            $STDOUT = fopen($output, "a");
+            $STDERR = fopen($output, "a");
+        } else {
+            throw new \Exception('can not open stdOutput file '.$output);
         }
     }
 
