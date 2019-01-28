@@ -30,14 +30,8 @@ class WorkerServer extends Process{
     public function run()
     {
         $this->checkEnv();
-        $this->init();
         $this->parseCommand();
         $this->hungup();
-    }
-
-    public function init()
-    {
-        $this->makePipe();
     }
 
     public function hungup($xxx = false)
@@ -46,9 +40,14 @@ class WorkerServer extends Process{
             pcntl_signal_dispatch();
             foreach($this->_worker_pids as $key => $pid){
                 $res = pcntl_waitpid($pid, $status, WNOHANG);
+                
                 if($res > 0 || $res == -1){
+                    echo '$res:' . $res . '|' .'status:' . $status . PHP_EOL;
                     unset($this->_worker_pids[$key]);
                 }
+                // if(count($this->_worker_pids) == 0){
+                //     exit();
+                // }
             }
             
             usleep(500000);
@@ -65,20 +64,45 @@ class WorkerServer extends Process{
         pcntl_signal(SIGUSR1, [__CLASS__, "handleSignal"], false);
     }
 
+    public function installWorkerSignal()
+    {
+        // 平滑退出
+        pcntl_signal(SIGINT, [__CLASS__, "handleWorkerSignal"], false);
+        // 查看进程状态
+        pcntl_signal(SIGUSR1, [__CLASS__, "handleWorkerSignal"], false);
+    }
+
+    public function handleWorkerSignal($signal)
+    {
+        switch($signal){
+            case SIGINT:
+                // 平滑退出信号
+                echo 'worker 接收到平滑退出信号'.PHP_EOL;
+                $this->stoping = true;
+            break;
+            case SIGUSR1:
+                // 查看进程状态
+
+            break;
+        }
+    }
+
     public function handleSignal($signal)
     {
         switch($signal){
             case SIGINT:
-                // CTRL-C
-                $this->stopAllWorkers();
+                // 向worker进程发送平滑退出信号
+                foreach($this->_worker_pids as $pid){
+                    echo '向worker进程发送平滑退出信号'.$pid.PHP_EOL;
+                    posix_kill($pid, SIGINT);
+                }
                 break;
             case SIGTERM:
                 // drop
             break;
             case SIGUSR1:
                 //status
-                echo 'master接收到SIGUSR1信号'.PHP_EOL;
-                $this->pipeWrite('status');
+
 
             break;
         }
@@ -107,7 +131,9 @@ class WorkerServer extends Process{
             break;
             case "stop": 
                 echo "stop\n";
-                $this->stopAllWorkers();
+                $master_pid = $this->getMasterPid();
+                posix_kill($master_pid, SIGINT);
+                exit();
             break;
             case "drop":
                 // 强制停止
@@ -160,7 +186,7 @@ class WorkerServer extends Process{
             $worker = new Worker([
                 'pid' => posix_getpid(),
             ]);
-            $this->makePipe();
+            $this->installWorkerSignal();
             $worker->hungup($job);
         }else{
             // master
