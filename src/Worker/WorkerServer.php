@@ -46,14 +46,11 @@ class WorkerServer extends Process{
             pcntl_signal_dispatch();
             foreach($this->_worker_pids as $key => $pid){
                 $res = pcntl_waitpid($pid, $status, WNOHANG);
-                if($res > 0){
-                    //unset($this->_worker_pids[$key]);
-                }else{
-
+                if($res > 0 || $res == -1){
+                    unset($this->_worker_pids[$key]);
                 }
-
             }
-//            $this->pipeWrite("sign");
+            
             usleep(500000);
         }
     }
@@ -80,7 +77,9 @@ class WorkerServer extends Process{
             break;
             case SIGUSR1:
                 //status
-            
+                echo 'master接收到SIGUSR1信号'.PHP_EOL;
+                $this->pipeWrite('status');
+
             break;
         }
     }
@@ -90,11 +89,21 @@ class WorkerServer extends Process{
     {
         global $argv, $argc;
         if($argc < 2){
-            exit("请输入：php 执行脚本 [ start stop status ]\n");
+            exit("请输入：php 执行脚本 [ start stop status drop restart reload ]\n");
         }
         switch(trim($argv[1])){
             case "start": 
+                echo "start\n";
                 $this->startServer();
+            break;
+            case "restart":
+                $script = $argv[0]; 
+                if(file_exists($this->master_pid_file)){
+                    exec("php $script stop && php $script start");exit;
+                }else{
+                    exec("php $script start");exit;
+                }
+                
             break;
             case "stop": 
                 echo "stop\n";
@@ -111,9 +120,11 @@ class WorkerServer extends Process{
                 break;
             case "status":
                 echo "status\n";
+                posix_kill($this->getMasterPid(), SIGUSR1);
+                exit();
             break;
             default: 
-                exit("请输入：php 执行脚本 [ start stop status ]\n");
+                exit("请输入：php 执行脚本 [ start stop status drop restart reload ]\n");
         }
     }
 
@@ -175,11 +186,15 @@ class WorkerServer extends Process{
 
     protected function stopAllWorkers()
     {
+        if(!file_exists($this->master_pid_file)){
+            exit("未运行！");
+        }
         $this->clearPipe();
         foreach($this->_worker_pids as $pid){
             exec("kill -9 $pid");
         }
         exec("kill -9 {$this->getMasterPid()}");
+        $this->clearMasterPid();
         die;
     }
 
@@ -206,12 +221,12 @@ class WorkerServer extends Process{
         } else {
             $sid = posix_setsid();
             if($sid < 0) {
-                exit("deamon failed\r\n");
+                exit("deamon failed\n");
             }
             umask(0);
             $pid = pcntl_fork();
             if($pid < 0) {
-                exit("pcntl_fork() failed\r\n");
+                exit("pcntl_fork() failed\n");
             } else if($pid > 0) {
                 exit(0); // 结束第一子进程，第二子进程继续
             }

@@ -5,6 +5,9 @@ namespace Cg\Worker;
 
 class Worker extends Process{
 
+
+    public $job_run_times = 0;
+
     public function __construct(array $config)
     {
         $this->pid = $config['pid'];
@@ -17,28 +20,27 @@ class Worker extends Process{
      * @param $job
      */
     public function hungup($job){
+        
+        $this->job_start_time = time();
+
         while (1) {
-            if($job->is_fin == 1){
-                // 任务已是完成状态
+
+            // 检查worker进程是否超时运行
+            if((time() - $this->hungup_time) >= $this->hungup_max_time){
                 exit();
-            }else{
-                $this->job_start_time = time();
-                // 检查worker进程是否超时运行
-                if(time() - $this->hungup_time >= $this->hungup_max_time){
-                    exit();
-                }
-                // 检查任务是否超时
-                if(time() - $this->job_max_run_seconds >= $this->job_max_run_seconds){
-                    exit();
-                }
-
-
-                // 执行业务逻辑
-                $job->logic($this);
-
-
-
             }
+            // 检查任务是否超时
+            if((time() - $this->job_start_time) >= $this->job_max_run_seconds){
+                exit();
+            }
+            
+
+            // 执行业务逻辑
+            $job->logic($this);
+            
+            // job运行次数+1
+            $this->job_run_times++;
+
 
 
 
@@ -47,7 +49,6 @@ class Worker extends Process{
 //                $this->handleSign();
 //            }
 
-            // 增加活动worker
 
             usleep(50000);
         }

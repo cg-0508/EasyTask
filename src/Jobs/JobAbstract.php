@@ -12,11 +12,6 @@ abstract class JobAbstract {
      * @var int
      */
     public $is_run = 0;
-    /**
-     * 是否执行成功
-     * @var int
-     */
-    public $is_fin = 0;
 
     /**
      * job的业务代码
@@ -25,8 +20,6 @@ abstract class JobAbstract {
      */
     abstract public function logic($worker);
 
-    public function complete(){
-        $this->is_fin = 1;
-    }
+
 
 }

@@ -1,7 +1,7 @@
 <?php
 
 namespace Cg\Worker;
-use Cg\Jobs\Job;
+
 
 abstract class Process
 {
@@ -32,7 +32,7 @@ abstract class Process
      * worker进程最大执行时间
      * @var
      */
-    protected $hungup_max_time;
+    protected $hungup_max_time = 3600;
 
     /**
      *
@@ -64,7 +64,7 @@ abstract class Process
     public function pipeWrite($signal = '')
     {
         $pipe = fopen($this->pipe_path, 'w');
-        fwrite($pipe, $signal);
+        fwrite($pipe, $signal . PHP_EOL);
         fclose($pipe);
     }
 
@@ -93,6 +93,11 @@ abstract class Process
         return file_get_contents($this->master_pid_file);
     }
 
-
+    public function clearMasterPid()
+    {
+        if(file_exists($this->master_pid_file)){
+            unlink($this->master_pid_file);
+        }
+    }
 
 }
