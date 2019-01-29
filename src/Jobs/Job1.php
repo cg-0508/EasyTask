@@ -4,8 +4,6 @@ namespace Cg\Jobs;
 class Job1 extends JobAbstract{
 
 
-    public $job_id = 1;
-
     public $count = 2;
 
     public $job_name = 'job1';

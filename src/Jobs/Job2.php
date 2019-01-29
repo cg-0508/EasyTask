@@ -3,9 +3,7 @@ namespace Cg\Jobs;
 
 
 class Job2 extends JobAbstract{
-    
-    public $job_id = 2;
-    
+        
     public $count = 3;
     public $job_name = 'job2';
 

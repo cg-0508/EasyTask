@@ -5,7 +5,9 @@ namespace Cg\Worker;
 
 class Worker extends Process{
 
-
+    /**
+     * 单个Worker的Job运行次数
+     */
     public $job_run_times = 0;
 
     public function __construct(array $config)
@@ -20,6 +22,7 @@ class Worker extends Process{
      * @param $job
      */
     public function hungup($job){
+        
         $this->installWorkerSignal();
 
         $this->job_start_time = time();
