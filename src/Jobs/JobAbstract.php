@@ -12,7 +12,9 @@ abstract class JobAbstract {
      * @var int
      */
     public $is_run = 0;
-
+    
+    public $count = 1;
+    public $job_name = '';
     /**
      * job的业务代码
      * @param $worker

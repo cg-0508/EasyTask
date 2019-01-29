@@ -2,11 +2,10 @@
 
 namespace Cg\Worker;
 
+use Cg\Jobs\JobAbstract;
+
+
 class WorkerServer extends Process{
-    /**
-     * 工作进程数量
-     */
-    public $worker_count = 1;
 
     /**
      * worker进程id
@@ -18,14 +17,11 @@ class WorkerServer extends Process{
      */
     public $deamon = false;
 
-
+    /**
+     * 任务集合
+     */
     public $jobs = [];
 
-    /**
-     * worker进程集合
-     * @var array
-     */
-    public $workers = [];
 
     public function run()
     {
@@ -34,26 +30,32 @@ class WorkerServer extends Process{
         $this->hungup();
     }
 
+    /**
+     * Master
+     */
     public function hungup($xxx = false)
     {
         while(1){
+            $res = pcntl_wait($status);
             pcntl_signal_dispatch();
-            foreach($this->_worker_pids as $key => $pid){
-                $res = pcntl_waitpid($pid, $status, WNOHANG);
-                
-                if($res > 0 || $res == -1){
-                    echo '$res:' . $res . '|' .'status:' . $status . PHP_EOL;
-                    unset($this->_worker_pids[$key]);
+
+            if($res > 0){
+                // 进程退出
+                echo '进程退出' . $res .PHP_EOL; 
+                unset($this->_worker_pids[array_search($res, $this->_worker_pids)]);
+            }else{
+                if(count($this->_worker_pids) == 0){
+                    echo '进程全部退出' .PHP_EOL; 
+                    exit();
                 }
-                // if(count($this->_worker_pids) == 0){
-                //     exit();
-                // }
             }
-            
-            usleep(500000);
+            usleep(100000);
         }
     }
 
+    /**
+     * 注册Master进程信号
+     */
     public function installSignal()
     {
         // 平滑退出
@@ -64,28 +66,6 @@ class WorkerServer extends Process{
         pcntl_signal(SIGUSR1, [__CLASS__, "handleSignal"], false);
     }
 
-    public function installWorkerSignal()
-    {
-        // 平滑退出
-        pcntl_signal(SIGINT, [__CLASS__, "handleWorkerSignal"], false);
-        // 查看进程状态
-        pcntl_signal(SIGUSR1, [__CLASS__, "handleWorkerSignal"], false);
-    }
-
-    public function handleWorkerSignal($signal)
-    {
-        switch($signal){
-            case SIGINT:
-                // 平滑退出信号
-                echo 'worker 接收到平滑退出信号'.PHP_EOL;
-                $this->stoping = true;
-            break;
-            case SIGUSR1:
-                // 查看进程状态
-
-            break;
-        }
-    }
 
     public function handleSignal($signal)
     {
@@ -93,12 +73,19 @@ class WorkerServer extends Process{
             case SIGINT:
                 // 向worker进程发送平滑退出信号
                 foreach($this->_worker_pids as $pid){
-                    echo '向worker进程发送平滑退出信号'.$pid.PHP_EOL;
-                    posix_kill($pid, SIGINT);
+                    if(!posix_kill($pid, SIGINT)){
+                        exit("posix_kill faild.");
+                    }
                 }
+
                 break;
             case SIGTERM:
-                // drop
+                // drop 
+                foreach($this->_worker_pids as $pid){
+                    if(!posix_kill($pid, SIGKILL)){
+                        exit("posix_kill faild.");
+                    }
+                }
             break;
             case SIGUSR1:
                 //status
@@ -117,32 +104,57 @@ class WorkerServer extends Process{
         }
         switch(trim($argv[1])){
             case "start": 
-                echo "start\n";
                 $this->startServer();
             break;
             case "restart":
                 $script = $argv[0]; 
+                echo "正在重启...\n";
                 if(file_exists($this->master_pid_file)){
-                    exec("php $script stop && php $script start");exit;
+                    exec("php $script drop && php $script start");exit;
                 }else{
                     exec("php $script start");exit;
                 }
                 
             break;
             case "stop": 
-                echo "stop\n";
                 $master_pid = $this->getMasterPid();
-                posix_kill($master_pid, SIGINT);
-                exit();
+                if(!posix_kill($master_pid, SIGINT)){
+                    exit("posix_kill faild.");
+                }
+                while (1) {
+                    $master_is_alive = posix_kill($master_pid, 0);
+                    if ($master_is_alive) {
+                        usleep(100000);
+                        continue;
+                    }
+                    break;
+                }
+                exit("平滑停止成功！\n");
             break;
             case "drop":
                 // 强制停止
-                echo "drop\n";
-
-                break;
+                $master_pid = $this->getMasterPid();
+                if(!posix_kill($master_pid, SIGTERM)){
+                    exit("posix_kill faild.");
+                }
+                while (1) {
+                    $master_is_alive = posix_kill($master_pid, 0);
+                    if ($master_is_alive) {
+                        usleep(100000);
+                        continue;
+                    }
+                    break;
+                }
+                exit("强制停止成功！\n");
+            break;
             case "reload":
-                echo "reload\n";
-
+                $script = $argv[0]; 
+                echo "正在平滑重启...\n";
+                if(file_exists($this->master_pid_file)){
+                    exec("php $script stop && php $script start");exit;
+                }else{
+                    exec("php $script start");exit;
+                }
                 break;
             case "status":
                 echo "status\n";
@@ -161,6 +173,7 @@ class WorkerServer extends Process{
             $this->deamonize();
         }
         $this->createWorkers();
+        $this->saveMasterPid();
         $this->installSignal();
     }
 
@@ -169,10 +182,12 @@ class WorkerServer extends Process{
         if(count($this->jobs) < 1){
             exit("请添加任务！");
         }
-        for($i = 0; $i < count($this->jobs); $i++){
-            $this->fork($this->dispatch());
+        foreach($this->jobs as $job){
+            if(!$job instanceof JobAbstract) exit('Job类必须继承自JobAbstract');
+            for($i=0; $i < $job->count; $i++){
+                $this->fork($job);
+            }
         }
-        $this->saveMasterPid();
     }
 
 
@@ -186,26 +201,10 @@ class WorkerServer extends Process{
             $worker = new Worker([
                 'pid' => posix_getpid(),
             ]);
-            $this->installWorkerSignal();
             $worker->hungup($job);
         }else{
             // master
             array_push($this->_worker_pids, $pid);
-        }
-    }
-
-    /**
-     * 向worker派遣任务
-     */
-    private function dispatch()
-    {
-        foreach($this->jobs as $key => $job){
-            if ($job->is_run == 1){
-                continue;
-            }else{
-                $job->is_run = 1;
-                return $job;
-            }
         }
     }
 

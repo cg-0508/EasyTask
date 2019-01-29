@@ -24,7 +24,7 @@ abstract class Process
     /**
      * Worker退出标志
      */
-    public $stoping = false;
+    public $stoping = 0;
     /**
      * 进程挂起时间
      */
