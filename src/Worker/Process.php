@@ -13,12 +13,15 @@ abstract class Process
     public $log_path = __DIR__ . '/../Logs/log.txt';
 
     public $master_pid_file = __DIR__ . '/../Logs/master.pid';
+
+    public $status_file = __DIR__ . '/../Logs/status.txt';
     /**
      * 标准输出重定向的文件
      */
     public $std_out_file = __DIR__ . '/../Logs/log.txt';
 
     public $job;
+    
     public $signal;
 
     /**

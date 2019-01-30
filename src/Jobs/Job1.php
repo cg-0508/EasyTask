@@ -1,6 +1,8 @@
 <?php
 namespace Cg\Jobs;
 
+use Cg\Worker\Worker;
+
 class Job1 extends JobAbstract{
 
 
@@ -8,10 +10,10 @@ class Job1 extends JobAbstract{
 
     public $job_name = 'job1';
 
-    public function logic($worker)
+    public function logic(Worker $worker)
     {
         sleep(2);
-        echo 'JOB1执行' . $worker->job_run_times . '次数' . PHP_EOL;
+        //echo 'JOB1执行' . $worker->job_run_times . '次数' . PHP_EOL;
 
 
     }

@@ -1,5 +1,6 @@
 <?php
 namespace Cg\Jobs;
+use Cg\Worker\Worker;
 
 abstract class JobAbstract {
 
@@ -7,12 +8,6 @@ abstract class JobAbstract {
      * @var JOB ID
      */
     public $job_id;
-    
-    /**
-     * 是否正在执行
-     * @var int
-     */
-    public $is_run = 0;
     
     /**
      * 单个Job进程数量
@@ -29,7 +24,7 @@ abstract class JobAbstract {
      * @param $worker
      * @return mixed
      */
-    abstract public function logic($worker);
+    abstract public function logic(Worker $worker);
 
 
 

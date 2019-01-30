@@ -13,6 +13,7 @@ class Worker extends Process{
     public function __construct(array $config)
     {
         $this->pid = $config['pid'];
+        $this->job = $config['job'];
         parent::__construct();
     }
 
@@ -22,7 +23,7 @@ class Worker extends Process{
      * @param $job
      */
     public function hungup($job){
-        
+
         $this->installWorkerSignal();
 
         $this->job_start_time = time();
@@ -73,7 +74,24 @@ class Worker extends Process{
             break;
             case SIGUSR1:
                 // 查看进程状态
-
+                // 获取worker进程状态
+                $pid = posix_getpid();
+                $memory = round(memory_get_usage(true) / (1024 * 1024), 2) . "M";
+                $run_times = $this->job_run_times;
+                $time = time();
+                $start_time = date("Y-m-d H:i:s", $this->hungup_time);
+                $run_day = floor(($time - $this->hungup_time) / (24 * 60 * 60));
+                $run_hour = floor((($time - $this->hungup_time) % (24 * 60 * 60)) / (60 * 60));
+                $run_min = floor(((($time - $this->hungup_time) % (24 * 60 * 60)) % (60 * 60)) / 60);
+                $status = $this->job->job_name . "\n";
+                $status .= str_pad($pid, 10)
+                    .str_pad($memory, 15)
+                    .str_pad($run_times, 15)
+                    .str_pad($start_time, 25)
+                    .str_pad("{$run_day} 天 {$run_hour} 时 {$run_min} 分", 30)
+                    ."\n";
+                
+                file_put_contents($this->status_file, $status, FILE_APPEND);
             break;
         }
     }

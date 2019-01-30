@@ -1,8 +1,9 @@
 ## EasyTask
 用 PHP 写的多进程的任务派遣系统,可以在后台执行一些需要重复执行的任务,采用Master-Worker模型。
 
+- 服务启动(start)
 - 平滑重启(reload)
-- 状态监控（待完成）
+- 状态监控(status)
 - 强制重启(restart)
 - 强制退出(drop)
 - 平滑退出(stop)

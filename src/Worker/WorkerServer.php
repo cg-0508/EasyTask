@@ -9,6 +9,10 @@ class WorkerServer extends Process{
 
     /**
      * worker进程id
+     * [
+     *    pid => $job,
+     * ]
+     * 
      */
     private $_worker_pids = [];
 
@@ -34,24 +38,28 @@ class WorkerServer extends Process{
      * Master
      */
     public function hungup($xxx = false)
-    {
+    {                   
         while(1){
             $res = pcntl_wait($status);
             pcntl_signal_dispatch();
 
             if($res > 0){
                 // 进程退出
-                echo '进程退出' . $res .PHP_EOL; 
-                unset($this->_worker_pids[array_search($res, $this->_worker_pids)]);
+                $this->del_worker_pid($res);
             }else{
-                if(count($this->_worker_pids) == 0){
-                    echo '进程全部退出' .PHP_EOL; 
+                if($this->get_worker_count() == 0){
+                    $this->clearMasterPid();
                     exit();
                 }
             }
             usleep(100000);
         }
     }
+
+    private function del_worker_pid($pid){
+        unset($this->_worker_pids[$pid]);
+    }
+
 
     /**
      * 注册Master进程信号
@@ -72,16 +80,15 @@ class WorkerServer extends Process{
         switch($signal){
             case SIGINT:
                 // 向worker进程发送平滑退出信号
-                foreach($this->_worker_pids as $pid){
+                foreach($this->_worker_pids as $pid => $job){
                     if(!posix_kill($pid, SIGINT)){
                         exit("posix_kill faild.");
                     }
                 }
-
                 break;
             case SIGTERM:
                 // drop 
-                foreach($this->_worker_pids as $pid){
+                foreach($this->_worker_pids as $pid => $job){
                     if(!posix_kill($pid, SIGKILL)){
                         exit("posix_kill faild.");
                     }
@@ -89,7 +96,40 @@ class WorkerServer extends Process{
             break;
             case SIGUSR1:
                 //status
+                // 获取master进程状态
+                $pid = posix_getpid();
+                $memory = round(memory_get_usage(true) / (1024 * 1024), 2) . "M";
+                $time = time();
+                $class_name = get_class($this);
+                $start_time = date("Y-m-d H:i:s", $this->hungup_time);
+                $run_day = floor(($time - $this->hungup_time) / (24 * 60 * 60));
+                $run_hour = floor((($time - $this->hungup_time) % (24 * 60 * 60)) / (60 * 60));
+                $run_min = floor(((($time - $this->hungup_time) % (24 * 60 * 60)) % (60 * 60)) / 60);
 
+                $status = "Process [{$class_name}] 信息: \n"
+                    ."-------------------------------- master进程状态 --------------------------------\n"
+                    .str_pad("pid", 10)
+                    .str_pad("占用内存", 19)
+                    .str_pad("处理次数", 19)
+                    .str_pad("开始时间", 29)
+                    .str_pad("运行时间", 34)
+                    ."\n"
+                    .str_pad($pid, 10)
+                    .str_pad($memory, 15)
+                    .str_pad("--", 15)
+                    .str_pad($start_time, 25)
+                    .str_pad("{$run_day} 天 {$run_hour} 时 {$run_min} 分", 30)
+                    ."\n"
+                    . $this->get_worker_count() . " worker\n";
+
+                file_put_contents($this->status_file, $status."\n");
+
+                $json_workers_pid = json_encode($this->_worker_pids);
+                file_put_contents($this->status_file, $json_workers_pid."\n", FILE_APPEND);
+
+                foreach ($this->_worker_pids as $pid => $job) {
+                    posix_kill($pid, SIGUSR1);
+                }
 
             break;
         }
@@ -104,6 +144,9 @@ class WorkerServer extends Process{
         }
         switch(trim($argv[1])){
             case "start": 
+                if(file_exists($this->master_pid_file)){
+                    exit("server is running!");
+                }
                 $this->startServer();
             break;
             case "restart":
@@ -157,8 +200,26 @@ class WorkerServer extends Process{
                 }
                 break;
             case "status":
-                echo "status\n";
-                posix_kill($this->getMasterPid(), SIGUSR1);
+                if(file_exists($this->status_file)){
+                    unlink($this->status_file);
+                }
+                $master_pid = $this->getMasterPid();
+                if(!posix_kill($master_pid, SIGUSR1)){
+                    exit("posix_kill faild.");
+                }
+
+                // master 7行 +  get_worker_count
+                $worker_info_line =  (int)$this->get_jobs_sum_worker_count()*2;
+                while(!file_exists($this->status_file) || count(file($this->status_file)) < (7 + $worker_info_line)) {
+                    sleep(1);
+                }
+                $lines = file($this->status_file);
+                $master_lines = array_slice($lines, 0, 5);
+                echo implode("", $master_lines);
+                echo "-------------------------------- Worker进程状态 --------------------------------";
+                $worker_lines = array_slice($lines, - $this->get_jobs_sum_worker_count()*2);
+                echo implode("", $worker_lines);
+                unlink($this->status_file);
                 exit();
             break;
             default: 
@@ -166,6 +227,19 @@ class WorkerServer extends Process{
         }
     }
 
+
+    public function get_worker_count(){
+        return count($this->_worker_pids);
+    }
+
+    public function get_jobs_sum_worker_count()
+    {
+        $sum = 0;
+        foreach($this->jobs as $job){
+            $sum += $job->count;
+        }
+        return $sum;
+    }
 
     public function startServer()
     {
@@ -184,6 +258,7 @@ class WorkerServer extends Process{
         }
         foreach($this->jobs as $job){
             if(!$job instanceof JobAbstract) exit('Job类必须继承自JobAbstract');
+            if($job->job_name == '') exit('job_name属性必填');
             for($i=0; $i < $job->count; $i++){
                 $this->fork($job);
             }
@@ -200,11 +275,12 @@ class WorkerServer extends Process{
             // worker
             $worker = new Worker([
                 'pid' => posix_getpid(),
+                'job' => $job
             ]);
             $worker->hungup($job);
         }else{
             // master
-            array_push($this->_worker_pids, $pid);
+            $this->_worker_pids[$pid] = $job;
         }
     }
 
@@ -234,6 +310,10 @@ class WorkerServer extends Process{
         }
     }
 
+
+
+
+
     /**
      * 开启守护进程
      */
@@ -258,6 +338,7 @@ class WorkerServer extends Process{
             $this->resetStd();
         }
     }
+
     /**
      * 重定向标准输出
      */
